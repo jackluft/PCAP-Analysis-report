@@ -1,0 +1,6 @@
+scapy
+argparse
+matplotlib
+reportlab
+colorama
+numpy
