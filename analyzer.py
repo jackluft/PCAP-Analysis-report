@@ -144,8 +144,8 @@ def check_syn_flood():
 	OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
 	return OUTPUT_REPORT
 def check_http_get_flood():
-	#func:
-	#args:
+	#func: check_http_get_flood
+	#args: None
 	#Doc: This function will detect if there is a HTTP-GET flood attack in the PCAP file.
 	OUTPUT_REPORT = {"HTTP-GET FLOOD DETECTED": False}
 	return OUTPUT_REPORT
@@ -204,14 +204,12 @@ def calculate_icmp_from_ips():
 			icmp_list_group.append({"packet":p, "count":1, "total bytes": len(p), "Start Time": packet_time, "End time": packet_time})
 			target_ip = p[IP].dst
 	return icmp_list_group, target_ip
-def check_icmp_flood():
-	#func: icmp_flood
-	#args: None
-	#Docs: This function will detect if there is an ICMP flood attack in the PCAP file.
-	OUTPUT_REPORT = {"ICMP FLOOD DETECTED": False}
-	burst_threshold = 100
-	icmp_packets, target_ip  = calculate_icmp_from_ips()
+def get_icmp_flood_packets(icmp_packets):
+	#func: get_icmp_flood_packets
+	#args: icmp_packets -> 
+	#Docs: This function will return a list of all the IPs (ICMP) that have a high packet rate
 	#Check the ICMP burst rate
+	burst_threshold = 100
 	icmp_flood = []
 	for p in icmp_packets:
 		#Calculate packet rate
@@ -223,6 +221,15 @@ def check_icmp_flood():
 		if icmp_rate > burst_threshold:
 			#Packet is ICMP packet
 			icmp_flood.append(p)
+	return icmp_flood
+def check_icmp_flood():
+	#func: icmp_flood
+	#args: None
+	#Docs: This function will detect if there is an ICMP flood attack in the PCAP file.
+	OUTPUT_REPORT = {"ICMP FLOOD DETECTED": False}
+	icmp_packets, target_ip  = calculate_icmp_from_ips()
+	#Check the ICMP burst rate
+	icmp_flood = get_icmp_flood_packets(icmp_packets)
 
 	#
 	if len(icmp_flood) > 0:
@@ -234,63 +241,83 @@ def check_icmp_flood():
 
 
 	return OUTPUT_REPORT
+def calculate_udp_from_ips():
+	#func: calculate_udp_from_ips
+	#args: None
+	#Docs: This function will return a list of ips that have sent multiple packets.
+	#Will return the format: {"packet":p, "count":1, "total bytes": len(p), "Start Time": packet_time, "End time": packet_time}
+	udp_list_group = []
+	target_ip = None
+	#{"IP": p, "count": x}
+	for p in udp_list:
+		found = False
+		#Check if ip already in list
+		for entry in udp_list_group:
+			if entry["packet"][IP].src == p[IP].src:
+				entry["count"] = entry["count"] +1
+				entry["total bytes"] = entry["total bytes"] + len(p)
+				entry["End time"] = p.time
+				found = True
+				break
+		if not found:
+			#add it to the list
+			packet_time = p.time
+			udp_list_group.append({"packet":p, "count":1, "total bytes": len(p), "Start Time": packet_time, "End time": packet_time})
+			print(len(udp_list))
+			print(list(expand(p)))
+			if p.haslayer(IPv6):
+				target_ip = p[IPv6].dst
+			else:
+				target_ip = p[IP].dst
+	return udp_list_group, target_ip
+def get_udp_flood_packets(udp_packets):
+	#func: get_udp_flood_packets
+	#args: udp_packets -> Array of UDP packets
+	#Docs: This function will return a list of all the IPs that have a high packet rate
+	burst_threshold = 100
+	udp_flood = []
+	for udp_p in udp_packets:
+		if udp_p["count"] > 1:
+			udp_rate = udp_p["count"]/(udp_p["End time"] - udp_p["Start Time"])
+		else:
+			udp_rate = udp_p["count"]
+		if udp_rate > burst_threshold:
+			#Packet is ICMP packet
+			udp_flood.append(udp_p)
+	return udp_flood
+def calculate_avg_udp_packet_rate(udp_flood):
+	#func: calculate_avg_udp_packet_rate
+	#args: None
+	#Docs: This function will calculate the average packet rate for the UDP DDoS attack.
+	timestamps = []
+	for p in udp_flood:
+		timestamps.append(p["packet"].time)
+
+	if timestamps:
+		total_packets = len(udp_flood)
+		first_time = timestamps[0]
+		last_time = timestamps[-1]
+		duration = last_time - first_time
+		return total_packets / (duration)
+
+	return 0
 def check_udp_flood():
 	#func: udp_flood
 	#args: None
 	#Docs: This function will detect if there is a UDP flood attack in the pcap file.
-
-	#-----------------------------------
-	#CHANGE THIS WHOLE FUNCTION!!!!!!!!!!
-	#-----------------------------------
 	OUTPUT_REPORT = {"UDP FLOOD DETECTED": False}
+	udp_flood = []
+	udp_packets, target_ip  = calculate_udp_from_ips()
+	
+	#Get burst rate of UDP traffic
+	udp_flood = get_udp_flood_packets(udp_packets)
 
-	#Check 1: See if packets are sent at an unusually high rate
-	#Check 2: See if many UDP packets are sent to the same Destination IP
-
-	time_bin = 1.0
-	burst_threshold = 500
-	timestamps = []
-	udp_list_ips = []
-	for p in udp_list:
-		timestamps.append(p.time)
-		found = False
-
-		#Check if ip already in list
-		for entry in udp_list_ips:
-			if entry["packet"].src == p.src:
-				entry["count"] = entry["count"] +1
-				found = True
-				break
-		if not found:
-			udp_list_ips.append({"packet":p,"count":1})
-
-
-	#Check 1
-	#Check the udp traffic
-	if timestamps:
-		timestamps = np.array(timestamps)
-		startime, endtime = timestamps[0], timestamps[-1]
-		bins = np.arange(startime,endtime,time_bin)
-		packet_counts, _ = np.histogram(timestamps,bins=bins)
-		#Check if more then 500 packets are doing sent over a time interval
-		burst_times = bins[:-1][packet_counts > burst_threshold]
-
-		if len(burst_times) > 0:
-			#High rate of UDP packets being sent
-			OUTPUT_REPORT["UDP FLOOD DETECTED"] = True
-
-			#Get all the ips associated with UDP flood
-			#Might need to change this code up
-			##---------------------------
-			attacks_ips = []
-			for udp in udp_list_ips:
-				if udp["count"] >= burst_threshold:
-					#Attack ip
-					attacks_ips.add(udp)
-
-			OUTPUT_REPORT["IPS"] = attacks_ips
-
-
+	#Make report
+	if len(udp_flood) > 0:
+		#UDP packets have exceed UDP flood
+		OUTPUT_REPORT["UDP FLOOD DETECTED"] = True
+		OUTPUT_REPORT["packets"] = udp_flood
+		OUTPUT_REPORT["avg packet rate"] = calculate_avg_udp_packet_rate(udp_flood)
 
 
 	return OUTPUT_REPORT
@@ -313,6 +340,8 @@ def read_packets(packets):
 	global packet_number
 	packet_number = len(packets)
 	for p in packets:
+		packet_content = list(expand(p))
+		#print(packet_content)
 		#check the types of packets
 
 		if p.haslayer(DNS):
@@ -345,7 +374,6 @@ def read_packets(packets):
 			udp_list.append(p)
 		else:
 			#other packets
-			packet_content = list(expand(p))
 			other_packets.append(p)
 
 def plot_network_traffic():
