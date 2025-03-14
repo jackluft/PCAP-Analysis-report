@@ -1,3 +1,5 @@
+#Jack Luft
+#CSC 490 - March 2025
 from scapy.all import *
 import argparse
 import matplotlib.pyplot as plt
@@ -28,14 +30,6 @@ other_packets = []
 #Graph Colors
 COLORS = ["Red", "Blue", "Green", "Cyan", "Orange", "Purple", "Pink","Yellow"]
 
-class ICMP:
-	def __init__(self,packet):
-		self.packet = packet
-
-	def getSrc(self):
-		return packet[IP].src
-	def getDst(self):
-		return packet[IP].dst
 class TCP_packet:
 	def __init__(self,packet):
 		self.packet = packet
@@ -50,6 +44,8 @@ class TCP_packet:
 		return self.packet[IP].src
 	def getDst(self):
 		return self.packet[IP].dst
+	def getTime(self):
+		return self.packet[IP].time
 
 def calculate_percentage_of_syn(tcp_handshakes):
 	#func: calculate_percentage_of_syn
@@ -78,17 +74,20 @@ def calculate_syn_from_ips(tcp_handshakes):
 				if entry["IP"] == p.getSrc():
 					entry["count"] = entry["count"] +1
 					entry["total bytes"] = entry["total bytes"] + len(p.packet)
+					packet_time = p.getTime()
+					entry["End time"] = packet_time
 					found = True
 					break
 			if not found:
 				#add it to the list
-				syn_list_ips.append({"IP":p.getSrc(), "count":1, "total bytes": len(p.packet)})
+				packet_time = p.getTime()
+				syn_list_ips.append({"IP":p.getSrc(), "count":1, "total bytes": len(p.packet), "Start Time": packet_time, "End time": packet_time})
 				target_ip = p.getDst()
 				target_port = p.packet.dport
 	return syn_list_ips, target_ip,target_port
 def calculate_syn_burst():
 	#func: calculate_syn_burst
-	#args:
+	#args: None
 	#Docs: This function is a helper function for check_syn_flood()'
 	#This function will calculate if the packet data has a bursty behavior 
 	pass
@@ -150,11 +149,58 @@ def check_http_get_flood():
 	#Doc: This function will detect if there is a HTTP-GET flood attack in the PCAP file.
 	OUTPUT_REPORT = {"HTTP-GET FLOOD DETECTED": False}
 	return OUTPUT_REPORT
+
+def calculate_icmp_from_ips():
+	#func: calculate_syn_from_ips
+	#args: tcp_handshakes -> list of tcp handshakes
+	#Docs: This function is a helper function for check_syn_flood()'
+	#This function will return a list of all the ips, that for preforming the DDoS attack.
+	icmp_list_group = []
+	target_ip = None
+	#{"IP": p, "count": x}
+	for p in icmp_list:
+		found = False
+		#Check if ip already in list
+		for entry in icmp_list_group:
+			if entry["packet"][IP].src == p[IP].src:
+				entry["count"] = entry["count"] +1
+				entry["total bytes"] = entry["total bytes"] + len(p)
+				entry["End time"] = p.time
+				found = True
+				break
+		if not found:
+			#add it to the list
+			packet_time = p.time
+			icmp_list_group.append({"packet":p, "count":1, "total bytes": len(p), "Start Time": packet_time, "End time": packet_time})
+			target_ip = p[IP].dst
+	return icmp_list_group, target_ip
 def check_icmp_flood():
 	#func: icmp_flood
 	#args: None
 	#Docs: This function will detect if there is an ICMP flood attack in the PCAP file.
 	OUTPUT_REPORT = {"ICMP FLOOD DETECTED": False}
+	burst_threshold = 100
+	icmp_packets, target_ip  = calculate_icmp_from_ips()
+	#Check the ICMP burst rate
+	icmp_flood = []
+	for p in icmp_packets:
+		#Calculate packet rate
+		#(endtime - start time) / packetnum
+		if p["count"] > 1:
+			icmp_rate = p["count"]/(p["End time"] - p["Start Time"])
+		else:
+			icmp_rate = p["count"]
+		print(f"ICMP Rate: {icmp_rate}")
+		if icmp_rate > burst_threshold:
+			#Packet is ICMP packet
+			icmp_flood.append(p)
+
+	#
+	if len(icmp_flood) > 0:
+		OUTPUT_REPORT["ICMP FLOOD DETECTED"] = True
+		OUTPUT_REPORT["target ip"] = target_ip
+
+
 
 	return OUTPUT_REPORT
 def check_udp_flood():
@@ -320,6 +366,8 @@ def get_packet_rate(packet_list):
 	for p in packet_list:
 		timestamps.append(p.time)
 	if timestamps:
+		if len(timestamps) == 1:
+			return len(packet_list)
 		first_time = timestamps[0]
 		end_time = timestamps[-1]
 		packet_rate = len(packet_list) / (end_time- first_time)
@@ -399,7 +447,9 @@ def create_ip_table(list_ips):
 		attacker_ip = d['IP']
 		attack_count = d['count']
 		attacker_byte_size = d["total bytes"]
-		data_grid.append([attacker_ip,attack_count,attacker_byte_size,-1])
+		#Check to make sure count is != 1
+		packet_rate = round(d['count'] / (d["End time"] - d["Start Time"]),2)
+		data_grid.append([attacker_ip,attack_count,attacker_byte_size,packet_rate])
 	table = Table(data_grid, colWidths=[150, 150, 150, 150])  # Adjust widths
 
 	# Apply Table Style
@@ -413,7 +463,18 @@ def create_ip_table(list_ips):
 		("TOPPADDING", (0, 0), (-1, -1), 5),  # Padding for all cells
 		]))
 	return table
+def generate_icmp_flood_text(report,paragraph_style):
+	#func: generate_icmp_flood_text
+	#args: report-> ,paragraph_style -> 
+	#Docs: 
+	if(report["ICMP FLOOD DETECTED"] == True):
+		text = f"<b>ICMP Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected!"
 
+	else:
+		text = f"<b>ICMP Flood</b>: No UDP flood attack detected. ICMP traffic from PCAP file seems normal."
+	
+	icmp_flood_text = Paragraph(text, paragraph_style)
+	return icmp_flood_text
 def generate_syn_flood_text(report,paragraph_style):
 	#func: syn_flood_text
 	#args: report-> 
@@ -449,7 +510,7 @@ def generate_udp_flood_text(report,paragraph_style):
 	#args: report -> . paragraph_style -> 
 	#Docs:
 	if(report["UDP FLOOD DETECTED"] == True):
-		text = f"<b>UDP Flood</b>: [DDoS ALERT] High volume of suspicious traffic detected!"
+		text = f"<b>UDP Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected!"
 	else:
 		text = f"<b>UDP Flood</b>: No UDP flood attack detected. UDP traffic from PCAP file seems normal."
 	udp_flood_text = Paragraph(text, paragraph_style)
@@ -469,17 +530,7 @@ def generate_no_ddos_text():
 	paragraph_style.leading = 14
 	no_ddos_text = Paragraph(text, paragraph_style)
 	return no_ddos_text
-def generate_icmp_flood_text(report,paragraph_style):
-	#func: generate_icmp_flood_text
-	#args: report-> ,paragraph_style -> 
-	#Docs: 
-	if(report["ICMP FLOOD DETECTED"] == True):
-		text = f"<b>ICMP Flood</b>: [DDoS ALERT] High volume of suspicious traffic detected!"
-	else:
-		text = f"<b>ICMP Flood</b>: No UDP flood attack detected. ICMP traffic from PCAP file seems normal."
-	
-	icmp_flood_text = Paragraph(text, paragraph_style)
-	return icmp_flood_text
+
 def report_conclusion(tcp,udp,icmp,http=False):
 	#func: report_conclusion
 	#args:
