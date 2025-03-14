@@ -14,6 +14,6 @@ This program will detect ICMP Flood attacks by calculating the ICMP Echo packets
 
 
 ## Output:
-The program will output a PDF document reporting all its findings in the PCAP file. The document will go into detail of what packets make up the PCAP file and details about the DDoS attacks it has detected (Find example output of file in: Example_output-file.pdf). 
+The program will output a PDF document reporting all its findings in the PCAP file. The document will go into detail of what packets make up the PCAP file and details about the DDoS attacks it has detected (Find example output of file in: Example_output-file.pdf and in Example-output2.pdf). 
 
 
