@@ -3,7 +3,7 @@ This program will analyze a pcap file inputed into the program and detected any 
 ## Installing required libraries
 $ pip install -r requirements.txt
 ## Running the program 
-$ python analyzer.py <file.pcap>
+$ python analyzer.py <file.pcap>  $ python analyzer.py <file.pcap> -n <output.pdf>
 ## Detecting SYN Flood attacks: 
 This program will detect TCP SYN Flood attacks by calculating the number of incompleted 3-way handshakes and take the average of the incomplete handshakes based off all the TCP traffic. The implementation of this logic is in the check_syn_flood() function
 
