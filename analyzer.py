@@ -13,6 +13,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus.tables import TableStyle
 from reportlab.lib import colors
 from colorama import Fore
+import sys
 import numpy as np
 
 
@@ -27,6 +28,9 @@ dns_list = []
 mdns_list = []
 packet_number = 0
 other_packets = []
+
+#output file name
+FILE_NAME = "output-report.pdf"
 
 #Graph Colors
 COLORS = ["Red", "Blue", "Green", "Cyan", "Orange", "Purple", "Pink", "Yellow"]
@@ -474,53 +478,60 @@ def get_avg_packet_size(packet_list):
 
 	return total_size /len(packet_list)
 
-def packet_details(paragraph_style):
+def packet_details():
 	#func: packet_details
 	#args: paragraph_style -> The style object of the paragraph
 	#Docs: This function is a helper function for 'createReport'
 	#This function will add all the details about the packet into the PDF document
 	text = ""
-	temp = -1
+	styles = getSampleStyleSheet()
+	paragraph_style = styles["Normal"]
+	paragraph_style.wordWrap = "CJK"
+	paragraph_style.spaceBefore = 15  # Space before the paragraph
+	paragraph_style.spaceAfter = 5   # Space after the paragraph
+	paragraph_style.leftIndent = 40   # Indentation from the left
+	paragraph_style.rightIndent = 10  # Optional: Indentation from the right
+	paragraph_style.leading = 10
 	i = 0 
 	if len(tcp_list) > 0:
 		tcp_rate = get_packet_rate(tcp_list)
 		avg_size = get_avg_packet_size(tcp_list)
-		text = text + f"""<font color="{COLORS[i]}">TCP</font>: {len(tcp_list)} TCP packets with a AVG packet size of: {avg_size:.2f}, packet rate: {tcp_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">TCP</font>: {len(tcp_list)} TCP packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {tcp_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(quic_list) > 0:
 		quic_rate = get_packet_rate(quic_list)
 		avg_size = get_avg_packet_size(quic_list)
-		text = text + f"""<font color="{COLORS[i]}">QUIC</font>: {len(quic_list)} QUIC packets with a AVG packet size of: {avg_size:.2f}, packet rate: {quic_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">QUIC</font>: {len(quic_list)} QUIC packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {quic_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(icmp_list) > 0:
 		icmp_rate = get_packet_rate(icmp_list)
 		avg_size = get_avg_packet_size(icmp_list)
-		text = text + f"""<font color="{COLORS[i]}">ICMP</font>: {len(icmp_list)} ICMP packets with a AVG packet size of: {avg_size:.2f}, packet rate: {icmp_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">ICMP</font>: {len(icmp_list)} ICMP packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {icmp_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(arp_list) > 0:
 		arp_rate = get_packet_rate(arp_list)
 		avg_size = get_avg_packet_size(arp_list)
-		text = text + f"""<font color="{COLORS[i]}">ARP</font>: {len(arp_list)} ARP packets with a AVG packet size of: {avg_size:.2f}, packet rate: {arp_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">ARP</font>: {len(arp_list)} ARP packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {arp_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(dns_list) > 0:
 		dns_rate = get_packet_rate(dns_list)
 		avg_size = get_avg_packet_size(dns_list)
-		text = text + f"""<font color="{COLORS[i]}">DNS</font>: {len(dns_list)} DNS packets with a AVG packet size of: {avg_size:.2f}, packet rate: {dns_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">DNS</font>: {len(dns_list)} DNS packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {dns_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(udp_list) > 0:
 		udp_rate = get_packet_rate(udp_list)
 		avg_size = get_avg_packet_size(udp_list)
-		text = text + f"""<font color="{COLORS[i]}">UDP</font>: {len(udp_list)} UDP packets with a AVG packet size of: {avg_size:.2f}, packet rate: {udp_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">UDP</font>: {len(udp_list)} UDP packets. AVG packet size of: {avg_size:.2f}<br/><br/> packet rate: {udp_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(mdns_list) > 0:
 		mdns_rate = get_packet_rate(mdns_list)
 		avg_size = get_avg_packet_size(mdns_list)
-		text = text + f"""<font color="{COLORS[i]}">MDNS</font>: {len(mdns_list)} MDNS packets with a AVG packet size of: {avg_size:.2f}, packet rate: {mdns_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">MDNS</font>: {len(mdns_list)} MDNS packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {mdns_rate:.2f}<br/><br/>"""
 		i = i +1
 	if len(other_packets) > 0:
 		other_rate = get_packet_rate(other_packets)
 		avg_size = get_avg_packet_size(other_packets)
-		text = text + f"""<font color="{COLORS[i]}">Other</font>: {len(other_packets)} Other packets with a AVG packet size of: {avg_size:.2f}, packet rate: {other_rate:.2f}<br/><br/>"""
+		text = text + f"""<font color="{COLORS[i]}">Other</font>: {len(other_packets)} Other packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {other_rate:.2f}<br/><br/>"""
 		i = i +1
 	body = Paragraph(text,paragraph_style)
 
@@ -701,7 +712,6 @@ def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report):
 	#func: createReport
 	#args:
 	#Docs: This function will create a PDF report for the analysis of the PCAP file.
-	FILE_NAME = "output-report.pdf"
 	document = []
 	addTitle(document)
 
@@ -727,7 +737,7 @@ def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report):
 	#Output report of packets
 	
 
-	body = packet_details(paragraph_style)
+	body = packet_details()
 	#body_table = Table([body],colWidths=[300])
 	#document.append(body_table)
 	styles = getSampleStyleSheet()
@@ -810,18 +820,46 @@ def analyze_network_traffic():
 
 	return [syn_flood_report,udp_flood_report,icmp_flood_report]
 
-
+def parse_filename(filename):
+	#func: parse_filename
+	#args: filename - > The stirng that will be parsed
+	#Docs: This function will make sure the filename is in the correct format.
+	#Remove all '.' in the file name and any extensions
+	if filename != "output-report.pdf":
+		if "." in filename:
+			#Check to see if its a pdf extension
+			txt = filename.split(".")
+			if text[-1] != 'pdf':
+				#File as incorrect extension
+				filename = text[0] + ".pdf"
+		else:
+			filename = filename + ".pdf"
+	return filename
 def main():
 	#func: main
 	#args: None
 	#Docs: This function will be the main function of the program
+	global FILE_NAME
 	parser = argparse.ArgumentParser(description="Read A PCAP file, gives summary of network content")
 	parser.add_argument("pcap_file",help="Path to the PCAP file")
+	parser.add_argument("-n","--filename",type=str,default="output-report.pdf",help="Set the name of the output PDF file")
 	args = parser.parse_args()
 	file = args.pcap_file
+	temp_filname = args.filename
+
+	FILE_NAME = parse_filename(temp_filname)
 
 	#Read the pcap file
-	packets = rdpcap(file)
+	try:
+
+		packets = rdpcap(file)
+		if len(packets) == 0:
+			print(Fore.RED+"Error: PCAP file has no pacekts to read")
+			sys.exit(1)
+	except scapy.error.Scapy_Exception as e:
+		print(Fore.RED+f"Error: Unable to read {file}")
+		sys.exit(1)
+
 	read_packets(packets)
 	reports = analyze_network_traffic()
 	#List of reports
