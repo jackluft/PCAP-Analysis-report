@@ -33,7 +33,7 @@ other_packets = []
 FILE_NAME = "output-report.pdf"
 
 #Graph Colors
-COLORS = ["Red", "Blue", "Green", "Cyan", "Orange", "Purple", "Pink", "Yellow"]
+COLORS = ["Red", "Blue", "Green", "Cyan", "Orange", "Purple", "Pink", "Yellow", "Teal"]
 
 class TCP_packet:
 	def __init__(self,packet):
@@ -105,47 +105,50 @@ def check_syn_flood():
 	#Check 1: First check what percentage of tcp is a uncomplete 3-way handsahke
 	#Check 2: Check how many different IPs the attack is coming from
 	#Check 3: Check if its a bursty behavior
-	tcp_handshakes = []
-	timestamps = []
-	for p in tcp_list:
-		if p[TCP].flags == 0x02:
-			#SYN packet
-			#record the a SYN flag being sent
-			tcp = TCP_packet(p)
-			tcp_handshakes.append(tcp)
-			timestamps.append(p.time)
-		elif p[TCP].flags == 0x10:
-			#ACK - That is completing the hand shake
-			#Check if packet is in the tcp_syn list
-			for tcp in tcp_handshakes:
-				if p.src == tcp.getSrc() and p.dst == tcp.getDst():
-					tcp.ack = True
+	if len(tcp_list) > 0:
+		tcp_handshakes = []
+		timestamps = []
+		for p in tcp_list:
+			if p[TCP].flags == 0x02:
+				#SYN packet
+				#record the a SYN flag being sent
+				tcp = TCP_packet(p)
+				tcp_handshakes.append(tcp)
+				timestamps.append(p.time)
+			elif p[TCP].flags == 0x10:
+				#ACK - That is completing the hand shake
+				#Check if packet is in the tcp_syn list
+				for tcp in tcp_handshakes:
+					if p.src == tcp.getSrc() and p.dst == tcp.getDst():
+						tcp.ack = True
 
-	#After looping throw all the packets
-	#see how many tcp handshakes have not been completed
-	#log all the ip address that sent the SYN packets
-	#Check 1
-	syn_percentage = calculate_percentage_of_syn(tcp_handshakes)
-	if syn_percentage > 0.3:
-		#SYN_flood
-		OUTPUT_REPORT["SYN FLOOD DETECTED"] = True
-		#Check 2
-		syn_list_ips,target_ip,target_port = calculate_syn_from_ips(tcp_handshakes)
-		OUTPUT_REPORT["packets"] = syn_list_ips
-		#Check 3: Bursty
-		if timestamps:
-			#Calculate packet rate
-			first_time = timestamps[0]
-			last_time = timestamps[-1]
-			total = 0
-			for p in syn_list_ips:
-				total = total + p["count"]
-			packet_rate = total / (last_time-first_time)
-			OUTPUT_REPORT["packet rate"] = packet_rate
-			OUTPUT_REPORT["target ip"] = target_ip
-			OUTPUT_REPORT["target port"] = target_port
-		calculate_syn_burst()
-	OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
+		#After looping throw all the packets
+		#see how many tcp handshakes have not been completed
+		#log all the ip address that sent the SYN packets
+		#Check 1
+		syn_percentage = calculate_percentage_of_syn(tcp_handshakes)
+		if syn_percentage > 0.3:
+			#SYN_flood
+			OUTPUT_REPORT["SYN FLOOD DETECTED"] = True
+			#Check 2
+			syn_list_ips,target_ip,target_port = calculate_syn_from_ips(tcp_handshakes)
+			OUTPUT_REPORT["packets"] = syn_list_ips
+			#Check 3: Bursty
+			if timestamps:
+				#Calculate packet rate
+				first_time = timestamps[0]
+				last_time = timestamps[-1]
+				total = 0
+				for p in syn_list_ips:
+					total = total + p["count"]
+				packet_rate = total / (last_time-first_time)
+				OUTPUT_REPORT["packet rate"] = packet_rate
+				OUTPUT_REPORT["target ip"] = target_ip
+				OUTPUT_REPORT["target port"] = target_port
+			calculate_syn_burst()
+		OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
+	else:
+		OUTPUT_REPORT["SYN Flood percentage"] = 0
 	return OUTPUT_REPORT
 def check_http_get_flood():
 	#func: check_http_get_flood
@@ -379,14 +382,15 @@ def read_packets(packets):
 		packet_content = list(expand(p))
 		#print(packet_content)
 		#check the types of packets
-
 		if p.haslayer(DNS):
 			#dns
+			print(packet_content)
 			dns_list.append(p)
 		elif p.haslayer(UDP) and (p[UDP].dport == 443 or p[UDP].sport == 443):
 			#quic
+			print(packet_content)
 			quic_list.append(p)
-		elif p.haslayer(UDP) and p[UDP].dport == 5353 and p.haslayer(DNS):
+		elif p.haslayer(UDP) and (p[UDP].sport == 5353 or p[UDP].dport == 5353): #and p.haslayer(DNS):
 			#MDNS
 			mdns_list.append(p)
 		elif p.haslayer(ARP):
@@ -396,7 +400,7 @@ def read_packets(packets):
 			#http
 			http_list.append(p)
 		elif p.haslayer(TCP) and p.haslayer(IP):
-			#tcp
+			#tcp IPv4
 			tcp_list.append(p)
 		elif p.haslayer(IP) and "ICMP" in packet_content:
 			#ICMP packet <-(p.haslayer(ICMP) is not working)->
@@ -407,8 +411,10 @@ def read_packets(packets):
 			udp_list.append(p)
 		else:
 			#other packets
+			if 'TCP' not in packet_content:
+				print(packet_content)
 			other_packets.append(p)
-
+	print(f"MDNS list: {len(mdns_list)}")
 def plot_network_traffic():
 	#func: plot_network_traffic
 	#args: None
@@ -436,6 +442,9 @@ def plot_network_traffic():
 	if len(mdns_list) > 0:
 		labels.append("MDNS")
 		sizes.append(len(mdns_list))
+	if len(http_list) > 0:
+		labels.append("HTTP")
+		sizes.append(len(http_list))
 	if len(other_packets) > 0:
 		labels.append("other")
 		sizes.append(len(other_packets))
@@ -528,6 +537,11 @@ def packet_details():
 		avg_size = get_avg_packet_size(mdns_list)
 		text = text + f"""<font color="{COLORS[i]}">MDNS</font>: {len(mdns_list)} MDNS packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {mdns_rate:.2f}<br/><br/>"""
 		i = i +1
+	if len(http_list) > 0:
+		http_rate = get_packet_rate(http_list)
+		avg_size = get_avg_packet_size(http_list)
+		text = text + f"""<font color="{COLORS[i]}">HTTP</font>: {len(http_list)} MDNS packets. AVG packet size of: {avg_size:.2f} <br/><br/> packet rate: {http_rate:.2f}<br/><br/>"""
+		i = i + 1
 	if len(other_packets) > 0:
 		other_rate = get_packet_rate(other_packets)
 		avg_size = get_avg_packet_size(other_packets)
@@ -644,6 +658,25 @@ def generate_udp_flood_text(report,paragraph_style):
 		udp_flood_text = Paragraph(text, paragraph_style)
 		elements.append(udp_flood_text)
 	return elements
+def generate_http_get_flood_text(report,paragraph_style):
+	#func: generate_http_get_flood_text
+	#args: report -> ,paragraph_style -> 
+	#Docs: This function will generate the result text for the HTTP-GET fllod on the pdf.
+	elements = []
+	if(report["HTTP-GET FLOOD DETECTED"] == True):
+		target_ips = report["target ip"]
+		packet_list = report["packets"]
+		avg_packet_rate = round(report["avg packet rate"],2)
+		num_attacker_ips = len(packet_list)
+		text = f"<b>HTTP-GET Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected! <br/><br/> - Target IP: {target_ips} <br/><br/> - Number of Attacker IPs: {num_attacker_ips} <br/><br/> - Average Packet Rate: {avg_packet_rate} <br/><br/> - Below is a list of IP addresses suspected to be the source of the attack."
+		udp_flood_text = Paragraph(text, paragraph_style)
+		elements.append(udp_flood_text)
+	else:
+		text = f"<b>HTTP-GET Flood</b>: No HTTP-GET flood attack detected. HTTP-GET traffic from PCAP file seems normal."
+		http_flood_text = Paragraph(text, paragraph_style)
+		elements.append(http_flood_text)
+
+	return elements
 def generate_no_ddos_text():
 	#func: generate_no_ddos_text
 	#args: None
@@ -698,6 +731,11 @@ def report_conclusion(tcp,udp,icmp,http=False):
 		bullet_points.append("No evidence of an ICMP flood attack has been detected.")
 	else:
 		bullet_points.append("ICMP flood has been detected.")
+	if http["HTTP-GET FLOOD DETECTED"] == False:
+		bullet_points.append("No evidence of an HTTP-GET flood attack has been detected.")
+	else:
+		bullet_points.append("HTTP-GET flood has been detected.")
+
     # Create a list with bullet formatting
 	bullet_list = ListFlowable(
 		[ListItem(Paragraph(point, bullet_point_style)) for point in bullet_points],
@@ -708,7 +746,7 @@ def report_conclusion(tcp,udp,icmp,http=False):
 	conclusion = Paragraph(text,paragraph_style)
 	return [conclusion,bullet_list]
 
-def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report):
+def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report):
 	#func: createReport
 	#args:
 	#Docs: This function will create a PDF report for the analysis of the PCAP file.
@@ -779,9 +817,12 @@ def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report):
 			icmp_flood_text = generate_icmp_flood_text(icmp_flood_report,paragraph_style)
 			document.append(Spacer(1, 10))
 			document.extend(icmp_flood_text)
-
+		if http_get_fllod_report["HTTP-GET FLOOD DETECTED"] == True:
+			http_flood_text = generate_http_get_flood_text()
+			document.append(Spacer(1, 10))
+			document.extend(http_flood_text)
 	#Add Conclusion
-	conclusion = report_conclusion(syn_flood_report,udp_flood_report,icmp_flood_report)
+	conclusion = report_conclusion(syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report)
 	document.extend(conclusion)
 
 
@@ -816,9 +857,15 @@ def analyze_network_traffic():
 	else:
 		print(Fore.GREEN+"No ICMP flood detected in PCAP")
 
+	#HTTP flood
+	http_flood_report = check_http_get_flood()
+	if http_flood_report["HTTP-GET FLOOD DETECTED"] == True:
+		print(Fore.RED+"HTTP-GET flood detected!")
+		print(Fore.RED+"Details of the HTTP-GET flood will be included in the report")
+	else:
+		print(Fore.GREEN+"No HTTP-GET flood detected in PCAP")
 
-
-	return [syn_flood_report,udp_flood_report,icmp_flood_report]
+	return [syn_flood_report,udp_flood_report,icmp_flood_report,http_flood_report]
 
 def parse_filename(filename):
 	#func: parse_filename
@@ -829,7 +876,7 @@ def parse_filename(filename):
 		if "." in filename:
 			#Check to see if its a pdf extension
 			txt = filename.split(".")
-			if text[-1] != 'pdf':
+			if txt[-1] != 'pdf':
 				#File as incorrect extension
 				filename = text[0] + ".pdf"
 		else:
@@ -866,9 +913,10 @@ def main():
 	syn_flood_report = reports[0]
 	udp_flood_report = reports[1]
 	icmp_flood_report = reports[2]
+	http_get_fllod_report = reports[3]
 
 
-	createReport(args.pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report)
+	createReport(args.pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report)
 	
 		
 
