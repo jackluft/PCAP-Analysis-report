@@ -32,11 +32,9 @@ def read_packets(packets):
 		#check the types of packets
 		if p.haslayer(DNS):
 			#dns
-			print(packet_content)
 			dns_list.append(p)
 		elif p.haslayer(UDP) and (p[UDP].dport == 443 or p[UDP].sport == 443):
 			#quic
-			print(packet_content)
 			quic_list.append(p)
 		elif p.haslayer(UDP) and (p[UDP].sport == 5353 or p[UDP].dport == 5353): #and p.haslayer(DNS):
 			#MDNS
