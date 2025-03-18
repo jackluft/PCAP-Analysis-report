@@ -160,26 +160,27 @@ def check_syn_flood(tcp_list):
 	#Fix up this function-----------------------------------------
 	#-----------------------------------------
 	OUTPUT_REPORT = {"SYN FLOOD DETECTED": False}
+	OUTPUT_REPORT["SYN Flood percentage"] = 0
 	#Check 1: First check what percentage of tcp is a uncomplete 3-way handsahke
 	#Check 2: Check how many different IPs the attack is coming from
 	#Check 3: Check if its a bursty behavior
-	tcp_handshakes = get_tcp_incmplete_handshakes(tcp_list)
-	syn_percentage = calculate_number_of_syn(tcp_handshakes) / len(tcp_list)
-	print(f"SYN packet: {syn_percentage}")
-	if syn_percentage > 0.3:
-		#SYN_flood
-		OUTPUT_REPORT["SYN FLOOD DETECTED"] = True
-		#Check 2
-		syn_list_ips,target_ip,target_port = calculate_syn_from_ips(tcp_handshakes)
-		OUTPUT_REPORT["packets"] = syn_list_ips
-		#Calcuate average packet rate
-		OUTPUT_REPORT["avg packet rate"] = calculate_avg_packet_rate(syn_list_ips)
-		OUTPUT_REPORT["target ip"] = target_ip
-		OUTPUT_REPORT["target port"] = target_port
-		OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
-		OUTPUT_REPORT["Attack Duration"] = calculate_Attack_Duration(syn_list_ips)
-	else:
-		OUTPUT_REPORT["SYN Flood percentage"] = 0
+	if(len(tcp_list) > 0):
+		tcp_handshakes = get_tcp_incmplete_handshakes(tcp_list)
+		syn_percentage = calculate_number_of_syn(tcp_handshakes) / len(tcp_list)
+		if syn_percentage > 0.3:
+			#SYN_flood
+			OUTPUT_REPORT["SYN FLOOD DETECTED"] = True
+			#Check 2
+			syn_list_ips,target_ip,target_port = calculate_syn_from_ips(tcp_handshakes)
+			OUTPUT_REPORT["packets"] = syn_list_ips
+			#Calcuate average packet rate
+			OUTPUT_REPORT["avg packet rate"] = calculate_avg_packet_rate(syn_list_ips)
+			OUTPUT_REPORT["target ip"] = target_ip
+			OUTPUT_REPORT["target port"] = target_port
+			OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
+			OUTPUT_REPORT["Attack Duration"] = calculate_Attack_Duration(syn_list_ips)
+		else:
+			OUTPUT_REPORT["SYN Flood percentage"] = syn_percentage
 	return OUTPUT_REPORT
 def check_udp_flood(udp_list):
 	#func: udp_flood

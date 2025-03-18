@@ -356,7 +356,7 @@ def addTitle(doc):
 	doc.append(Spacer(1,20))
 	doc.append(Paragraph('PCAP Analysis report',ParagraphStyle(name="Doc",fontFamily="Helvetica",fontSize=36,alignment=TA_CENTER)))
 	doc.append(Spacer(1,20))
-def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report):
+def createReport(pcap_file,filename,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report):
 	#func: createReport
 	#args:
 	#Docs: This function will create a PDF report for the analysis of the PCAP file.
@@ -435,7 +435,7 @@ def createReport(pcap_file,syn_flood_report,udp_flood_report,icmp_flood_report,h
 	conclusion = report_conclusion(syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report)
 	document.extend(conclusion)
 
-	SimpleDocTemplate(pcap_file,pagesize=letter,rightMargin=10,leftMargin=10,topMargin=12,bottomMargin=6).build(document)
+	SimpleDocTemplate(filename,pagesize=letter,rightMargin=10,leftMargin=10,topMargin=12,bottomMargin=6).build(document)
 def set_packet_variables(packets):
 	#func:
 	#args:
@@ -462,7 +462,7 @@ def set_packet_variables(packets):
 	packet_number = packets["packet_number"]
 	other_packets = packets["other_packets"]
 
-def PDFreport(packets,traffic_results):
+def PDFreport(pcap_file_name,packets,traffic_results):
 	#func: report
 	#args:
 	#Docs: 
@@ -472,4 +472,4 @@ def PDFreport(packets,traffic_results):
 	http_get_fllod_report = packets[3]
 	filename = traffic_results["FILE_NAME"]
 	set_packet_variables(traffic_results)
-	createReport(filename,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report)
+	createReport(pcap_file_name,filename,syn_flood_report,udp_flood_report,icmp_flood_report,http_get_fllod_report)

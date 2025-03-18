@@ -13,7 +13,7 @@ def parse_args():
 def main():
 
 	args = parse_args()
-
+	pcap_file_name = args.pcap_file
 	#Organize all the packets
 	packets = capture_packets(args)
 
@@ -21,7 +21,7 @@ def main():
 	traffic_results = analyze_network_traffic(packets)
 
 	#Generate PDF Document
-	PDFreport(traffic_results,packets)
+	PDFreport(pcap_file_name,traffic_results,packets)
 
 
 
