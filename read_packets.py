@@ -59,10 +59,7 @@ def read_packets(packets):
 			udp_list.append(p)
 		else:
 			#other packets
-			if 'TCP' not in packet_content:
-				print(packet_content)
 			other_packets.append(p)
-	print(f"MDNS list: {len(mdns_list)}")
 def parse_filename(filename):
 	#func: parse_filename
 	#args: filename - > The stirng that will be parsed
