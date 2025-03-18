@@ -4,12 +4,13 @@ This program will analyze a pcap file inputed into the program and detected any 
 $ pip install -r requirements.txt
 ## Running the program 
 $ python analyzer.py <file.pcap> <br> $ python analyzer.py <file.pcap> -n <output.pdf>
-## Detecting SYN Flood attacks: 
-This program will detect TCP SYN Flood attacks by calculating the number of incompleted 3-way handshakes and take the average of the incomplete handshakes based off all the TCP traffic. The implementation of this logic is in the check_syn_flood() function
 
 ## Code structure
 The code is broken down into 5 files. <br>
 analyzer.py (The Main python program to execute) <br> detect_ddos.py (The python file that is responsible for the logic of the DDoS detection) <br> report_generator.py (The python file that is responsible for generating the PDF document in the proper format) <br> packetObject.py (Contains a TCP object used to calculate SYN Flood attack) <br>read_packets.py (The python file that will read that packets and organize the packets)
+
+## Detecting SYN Flood attacks: 
+This program will detect TCP SYN Flood attacks by calculating the number of incompleted 3-way handshakes and take the average of the incomplete handshakes based off all the TCP traffic. The implementation of this logic is in the check_syn_flood() function
 
 ## Detecting UDP Flood attacks:
 This program will detect UDP Flood attacks by calculating the burst rate of the UDP packets.
@@ -18,6 +19,9 @@ The implementation of this logic is in the check_udp_flood() function
 
 ## Detecting ICMP Flood attacks:
 This program will detect ICMP Flood attacks by calculating the ICMP Echo packets and calculating its packet rate. If the packet rate exceeds a threshold value its will be classified as a attack packet. The implementation of this logic is in the check_icmp_flood() function
+
+## Detecting HTTP Flood attacks:
+
 
 
 ## Output:
