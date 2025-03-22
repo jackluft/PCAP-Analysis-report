@@ -21,6 +21,7 @@ The implementation of this logic is in the check_udp_flood() function
 This program will detect ICMP Flood attacks by calculating the ICMP Echo packets and calculating its packet rate. If the packet rate exceeds a threshold value its will be classified as a attack packet. The implementation of this logic is in the check_icmp_flood() function
 
 ## Detecting HTTP Flood attacks:
+This program will detect HTTP-GET Flood attacks by analyzing the rate of incoming GET requests over time and flagging sources that exceed a specified request threshold, indicating potential DDoS activity. 
 
 
 
