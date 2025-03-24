@@ -19,6 +19,8 @@ udp_list = []
 dns_list = []
 mdns_list = []
 packet_number = 0
+ipv4_list = 0
+ipv6_list = 0
 other_packets = []
 COLORS = ["Red", "Blue", "Green", "Cyan", "Orange", "Purple", "Pink", "Yellow", "Teal"]
 def generate_no_ddos_text():
@@ -162,10 +164,10 @@ def generate_http_get_flood_text(report,paragraph_style):
 	if(report["HTTP-GET FLOOD DETECTED"] == True):
 		target_ips = report["target ip"]
 		packet_list = report["packets"]
-		attack_duration = report["Attack Duration"]
+		attack_duration = round(report["Attack Duration"],2)
 		avg_packet_rate = round(report["avg packet rate"],2)
 		num_attacker_ips = len(packet_list)
-		text = f"<b>HTTP-GET Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected! <br/><br/> - Target IP: {target_ips} <br/><br/> - Number of Attacker IPs: {num_attacker_ips} <br/><br/> - Average Packet Rate: {avg_packet_rate} <br/><br/> - Below is a list of IP addresses suspected to be the source of the attack."
+		text = f"<b>HTTP-GET Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected! <br/><br/> - Target IP: {target_ips} <br/><br/> - Number of Attacker IPs: {num_attacker_ips} <br/><br/> - Average Packet Rate: {avg_packet_rate} <br/><br/> - Attack Duration: {attack_duration}/secs <br/><br/> - Below is a list of IP addresses suspected to be the source of the attack."
 		udp_flood_text = Paragraph(text, paragraph_style)
 		elements.append(udp_flood_text)
 		#Add table
@@ -365,6 +367,15 @@ def createReport(pcap_file,filename,syn_flood_report,udp_flood_report,icmp_flood
 
 	#Add Text
 	text = f"This report analyzes the PCAP file: {pcap_file}. It will determine whether a DDoS attack is detected. Some types of attacks we will search for include: SYN flooding, UDP flooding, ICMP flooding, and HTTP-GET flooding."
+	#Percentage of ipv4 packets
+	ipv4_per = (ipv4_list /packet_number) * 100
+	ipv4_per = round(ipv4_per,2)
+	ipv6_per = (ipv6_list / packet_number) * 100
+	ipv6_per = round(ipv6_per,2)
+	text = text + f"This file contains {ipv4_per}% (Total of {ipv4_list}) IPv4 packets and {ipv6_per}% (Total of {ipv6_list}) IPv6 packets "
+
+	#Percantage of IPv6 packets
+	text = text + ""
 	styles = getSampleStyleSheet()
 	paragraph_style = styles["Normal"]
 	paragraph_style.wordWrap = "CJK"
@@ -450,6 +461,8 @@ def set_packet_variables(packets):
 	global mdns_list
 	global packet_number
 	global other_packets
+	global ipv4_list
+	global ipv6_list
 
 	icmp_list = packets["icmp_list"]
 	quic_list = packets["quic_list"]
@@ -459,6 +472,8 @@ def set_packet_variables(packets):
 	udp_list = packets["udp_list"]
 	dns_list = packets["dns_list"]
 	mdns_list = packets["mdns_list"]
+	ipv4_list = packets["ipv4_list"]
+	ipv6_list = packets["ipv6_list"]
 	packet_number = packets["packet_number"]
 	other_packets = packets["other_packets"]
 

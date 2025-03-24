@@ -1,4 +1,4 @@
-from scapy.all import IP
+from scapy.all import IP, IPv6
 class TCP_packet:
 	def __init__(self,packet):
 		self.packet = packet
@@ -10,9 +10,18 @@ class TCP_packet:
 	def complete_handshake(self):
 		self.ack = True
 	def getSrc(self):
-		return self.packet[IP].src
+		if self.packet.haslayer(IP):
+			return self.packet[IP].src
+		elif self.packet.haslayer(IPv6):
+			return self.packet[IPv6].src
 	def getDst(self):
-		return self.packet[IP].dst
+		if self.packet.haslayer(IP):
+			return self.packet[IP].dst
+		elif self.packet.haslayer(IPv6):
+			return self.packet[IPv6].dst
 	def getTime(self):
-		return self.packet[IP].time
+		if self.packet.haslayer(IP):
+			return self.packet[IP].time
+		elif self.packet.haslayer(IPv6):
+			return self.packet
 

@@ -8,6 +8,8 @@ tcp_list = []
 udp_list = []
 dns_list = []
 mdns_list = []
+ipv4_list = 0
+ipv6_list = 0
 packet_number = 0
 other_packets = []
 def expand(x):
@@ -19,6 +21,16 @@ def expand(x):
 	while x.payload:
 		x = x.payload
 		yield x.name
+def packetType(packet):
+	#func: packetType
+	#args: packet -> The packet that the function is checking
+	#Docs: This function will classify if a packet is IPv4 or IPv6 packet
+	global ipv4_list
+	global ipv6_list
+	if packet.haslayer(IP):
+		ipv4_list = ipv4_list + 1
+	elif packet.haslayer(IPv6):
+		ipv6_list = ipv6_list + 1
 def read_packets(packets):
 	#funcs: read_packets
 	#args: packets -> a list of all packets
@@ -28,6 +40,7 @@ def read_packets(packets):
 	global packet_number
 	packet_number = len(packets)
 	for p in packets:
+		packetType(p)
 		packet_content = list(expand(p))
 		#check the types of packets
 		if p.haslayer(DNS):
@@ -102,6 +115,8 @@ def capture_packets(args):
 	"mdns_list": mdns_list,
 	"packet_number": packet_number,
 	"other_packets": other_packets,
+	"ipv4_list": ipv4_list,
+	"ipv6_list" : ipv6_list,
 	"FILE_NAME": FILE_NAME }
 	return packet_data
 
