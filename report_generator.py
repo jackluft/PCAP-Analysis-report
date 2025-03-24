@@ -7,6 +7,7 @@ from reportlab.platypus.flowables import HRFlowable
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus.tables import TableStyle
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib import colors
 from scapy.all import IP
 from packetObject import TCP_packet
@@ -90,6 +91,26 @@ def report_conclusion(tcp,udp,icmp,http=False):
 	 
 	conclusion = Paragraph(text,paragraph_style)
 	return [conclusion,bullet_list]
+def fit_text(text, max_width, base_font="Helvetica", max_font_size=10, min_font_size=5):
+	"""
+	Shrinks the font size so the text fits within the given width.
+	Returns a Paragraph with adjusted font size.
+	"""
+	font_size = max_font_size
+	while font_size >= min_font_size:
+		text_width = stringWidth(text, base_font, font_size)
+		if text_width <= max_width:
+			break
+		font_size -= 0.5
+
+	style = ParagraphStyle(
+		name='ShrinkToFit',
+		fontName=base_font,
+		fontSize=font_size,
+		alignment=1,  # center
+	)
+	return Paragraph(text, style)
+
 def create_ip_table(list_ips):
 	#func: create_ip_table
 	#args: list_ips - > List of IP addresses
@@ -97,33 +118,42 @@ def create_ip_table(list_ips):
 	#This function will return a table to be added to the document
 	#Will sort the ips from highest number send to lowest number sent
 	#Output grid of inforation of IP'S
-	data_grid = [["IP", "Total Packets Sent", "Total Bytes Sent", "Packet Rate"]]
-	#Sort the list of IPs but the highest packets send to the lowest 
+
+	col_widths = [150, 150, 150, 150]
+	headers = ["IP", "Total Packets Sent", "Total Bytes Sent", "Packet Rate"]
+	data_grid = [[fit_text(h, col_widths[i]) for i, h in enumerate(headers)]]
+
+	#Sort the list of IPs by the highest packets sent to the lowest 
 	sorted_ips = sorted(list_ips, key=lambda x: x['count'], reverse=True)
+
 	for d in sorted_ips:
 		if isinstance(d['packet'], TCP_packet):
 			attacker_ip = d['packet'].getSrc()
 		else:
 			attacker_ip = d['packet'][IP].src
-		attack_count = d['count']
-		attacker_byte_size = d["total bytes"]
+		attack_count = str(d['count'])
+		attacker_byte_size = str(d["total bytes"])
 		if d["count"] > 1:
-			packet_rate = round(d['count'] / (d["End time"] - d["Start Time"]),2)
+			packet_rate = str(round(d['count'] / (d["End time"] - d["Start Time"]), 2))
 		else:
-			packet_rate = d["count"]
-		data_grid.append([attacker_ip,attack_count,attacker_byte_size,packet_rate])
-	table = Table(data_grid, colWidths=[150, 150, 150, 150])  # Adjust widths
+			packet_rate = str(d["count"])
+
+		row_data = [attacker_ip, attack_count, attacker_byte_size, packet_rate]
+		fitted_row = [fit_text(cell, col_widths[i]) for i, cell in enumerate(row_data)]
+		data_grid.append(fitted_row)
+
+	table = Table(data_grid, colWidths=col_widths)
 
 	# Apply Table Style
 	table.setStyle(TableStyle([
-		("GRID", (0, 0), (-1, -1), 1, colors.black),  # Black grid lines
-		("BACKGROUND", (0, 0), (-1, 0), colors.grey),  # Header background color
-		("TEXTCOLOR", (0, 0), (-1, 0), colors.white),  # Header text color
-		("ALIGN", (0, 0), (-1, -1), "CENTER"),  # Center align text
-		("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),  # Bold header font
-		("BOTTOMPADDING", (0, 0), (-1, 0), 8),  # Padding for header
-		("TOPPADDING", (0, 0), (-1, -1), 5),  # Padding for all cells
-		]))
+		("GRID", (0, 0), (-1, -1), 1, colors.black),
+		("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+		("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+		("ALIGN", (0, 0), (-1, -1), "CENTER"),
+		("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+		("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+		("TOPPADDING", (0, 0), (-1, -1), 5),
+	]))
 	return table
 def generate_syn_flood_text(report,paragraph_style):
 	#func: syn_flood_text
