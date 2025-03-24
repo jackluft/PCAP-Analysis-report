@@ -23,5 +23,5 @@ class TCP_packet:
 		if self.packet.haslayer(IP):
 			return self.packet[IP].time
 		elif self.packet.haslayer(IPv6):
-			return self.packet
+			return self.packet.time
 
