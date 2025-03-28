@@ -10,6 +10,7 @@ from reportlab.platypus.tables import TableStyle
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib import colors
 from scapy.all import IP
+from scapy.layers.http import HTTPRequest
 from packetObject import TCP_packet
 icmp_list = []
 quic_list = []
@@ -110,7 +111,29 @@ def fit_text(text, max_width, base_font="Helvetica", max_font_size=10, min_font_
 		alignment=1,  # center
 	)
 	return Paragraph(text, style)
+def unique_values(lst):
+	#func: unique_values
+	#args: lst -> A list of values
+	#Docs: This function will returns only the unique values from a list
+	seen = []
+	unique = []
+	for item in lst:
+		if item not in seen:
+			seen.append(item)
+			unique.append(item)
+	return unique
 
+def getHostName(packets):
+	#func: getHostName
+	#args: packets -> 
+	#Doccs: THis function will return the host name of the http packet
+	host_list = []
+	for p in packets:
+		if p["packet"].haslayer(HTTPRequest):
+			#Get host name
+			host = p["packet"][HTTPRequest].Host.decode()
+			host_list.append(host)
+	return unique_values(host_list)
 def create_ip_table(list_ips):
 	#func: create_ip_table
 	#args: list_ips - > List of IP addresses
@@ -197,7 +220,10 @@ def generate_http_get_flood_text(report,paragraph_style):
 		attack_duration = round(report["Attack Duration"],2)
 		avg_packet_rate = round(report["avg packet rate"],2)
 		num_attacker_ips = len(packet_list)
-		text = f"<b>HTTP-GET Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected! <br/><br/> - Target IP: {target_ips} <br/><br/> - Number of Attacker IPs: {num_attacker_ips} <br/><br/> - Average Packet Rate: {avg_packet_rate} <br/><br/> - Attack Duration: {attack_duration}/secs <br/><br/> - Below is a list of IP addresses suspected to be the source of the attack."
+		#Get HostName
+		hostName_list = getHostName(packet_list)
+		hostName_str = " ".join(hostName_list)
+		text = f"<b>HTTP-GET Flood</b>: <font color=red>[DDoS ALERT]</font> High volume of suspicious traffic detected! <br/><br/> - Target IP: {target_ips} <br/><br/> - Number of Attacker IPs: {num_attacker_ips} <br/><br/> - Average Packet Rate: {avg_packet_rate} <br/><br/> - Attack Duration: {attack_duration}/secs <br/><br/> -- Targeted HostName: {hostName_str} <br/><br/> - Below is a list of IP addresses suspected to be the source of the attack."
 		udp_flood_text = Paragraph(text, paragraph_style)
 		elements.append(udp_flood_text)
 		#Add table
