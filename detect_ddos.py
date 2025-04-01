@@ -264,7 +264,7 @@ def check_http_get_flood(http_list):
 	#Doc: This function will detect if there is a HTTP-GET flood attack in the PCAP file.
 	OUTPUT_REPORT = {"HTTP-GET FLOOD DETECTED": False}
 	http_get_list = get_http_traffic_sent(http_list)
-	http_traffic, _ = group_packts_by_ip(http_get_list)
+	http_traffic, target_ip = group_packts_by_ip(http_get_list)
 	#http_traffic = calculate_http_from_ips(http_list)
 	
 	#Get all the http flood traffic
@@ -272,7 +272,7 @@ def check_http_get_flood(http_list):
 
 	if len(http_flood_packets) > 0:
 		OUTPUT_REPORT["HTTP-GET FLOOD DETECTED"] = True
-		OUTPUT_REPORT["target ip"] = "temp"
+		OUTPUT_REPORT["target ip"] = target_ip
 		OUTPUT_REPORT["packets"] = http_flood_packets
 		OUTPUT_REPORT["avg packet rate"] = calculate_avg_packet_rate(http_flood_packets)
 		OUTPUT_REPORT["Attack Duration"] = calculate_Attack_Duration(http_flood_packets)
@@ -280,7 +280,7 @@ def check_http_get_flood(http_list):
 	return OUTPUT_REPORT
 def get_http_traffic_sent(http_list):
 	#func: get_http_traffic_sent()
-	#args: None
+	#args: http_list -> List of http packets
 	#Docs: This function will filter all the http traffic and only return traffic that has a destination port = 80.
 	http_sent = []
 	for p in http_list:
@@ -289,7 +289,7 @@ def get_http_traffic_sent(http_list):
 	return http_sent
 def analyze_network_traffic(data):
 	#func: analyze_network_traffic
-	#args: None
+	#args: data -> Dictionary of 
 	#Docs: This function will analyze all the network traffic.
 
 	#SYN flood
