@@ -3,7 +3,7 @@ This program will analyze a pcap file inputed into the program and detected any 
 ## Installing required libraries
 $ pip install -r requirements.txt
 ## Running the program 
-$ python analyzer.py <file.pcap> <br> $ python analyzer.py <file.pcap> -n <output.pdf>
+$ python analyzer.py <file.pcap> <br> $ python analyzer.py <file.pcap> -n <output.pdf> (-n flags is used to name the output PDF file)
 
 ## Code structure
 The code is broken down into 5 files. <br>
