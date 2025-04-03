@@ -28,4 +28,7 @@ This program will detect HTTP-GET Flood attacks by analyzing the rate of incomin
 ## Output:
 The program will output a PDF document reporting all its findings in the PCAP file. The document will go into detail of what packets make up the PCAP file and details about the DDoS attacks it has detected (Find example output of file in: Example_output-file.pdf and in Example-output2.pdf). 
 
-
+##Problems encountered
+Some of the problems encountered in detecting DDoS attacks, is detecting UDP, ICMP, and HTTP GET floods. I initially encountered numerous false positives, as any high-rate UDP traffic
+was flagged as suspicious, even though legitimate services like DNS and video streaming
+often generate large volumes of UDP packets.
