@@ -35,8 +35,6 @@ def read_packets(packets):
 	#funcs: read_packets
 	#args: packets -> a list of all packets
 	#Docs: This function will read all the packets and group them into there type
-	#-----------------------------------
-	#CHANGE THIS WHOLE FUNCTION!!!!!!!!!!
 	global packet_number
 	packet_number = len(packets)
 	for p in packets:
